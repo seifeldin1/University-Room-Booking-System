@@ -2,7 +2,7 @@ package com.example.University.controller;
 
 import com.example.University.dto.BookingRequestDTO;
 import com.example.University.dto.BookingResponseDTO;
-import com.example.University.service.BookingCancellationService;
+import com.example.University.dto.BookingHistoryResponseDTO;
 import com.example.University.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,7 +21,7 @@ import java.util.List;
 public class BookingController {
 
     private final BookingService bookingService;
-    private final BookingCancellationService bookingCancellationService;
+    // ✅ REMOVED: BookingCancellationService dependency (Person 5's responsibility)
 
     // GET availability of a room
     @GetMapping("/{id}/availability")
@@ -40,6 +40,7 @@ public class BookingController {
 
     // POST create booking request
     @PostMapping
+    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY')")
     public ResponseEntity<BookingResponseDTO> createBooking(
             @RequestBody BookingRequestDTO request,
             @RequestParam Long userId
@@ -50,6 +51,44 @@ public class BookingController {
                 .body(booking);
     }
 
+    // ===== PERSON 4's ENDPOINTS: APPROVAL & HISTORY =====
+
+    // PATCH approve booking (Admin only)
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BookingResponseDTO> approveBooking(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason,
+            Authentication authentication
+    ) {
+        BookingResponseDTO approvedBooking = bookingService.approveBooking(id, authentication.getName(), reason);
+        return ResponseEntity.ok(approvedBooking);
+    }
+
+    // PATCH reject booking (Admin only)
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BookingResponseDTO> rejectBooking(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason,
+            Authentication authentication
+    ) {
+        BookingResponseDTO rejectedBooking = bookingService.rejectBooking(id, authentication.getName(), reason);
+        return ResponseEntity.ok(rejectedBooking);
+    }
+
+    // GET booking history (Audit trail)
+    @GetMapping("/{id}/history")
+    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY', 'ADMIN')")
+    public ResponseEntity<List<BookingHistoryResponseDTO>> getBookingHistory(
+            @PathVariable Long id
+    ) {
+        List<BookingHistoryResponseDTO> history = bookingService.getBookingHistory(id);
+        return ResponseEntity.ok(history);
+    }
+
+    // ===== PERSON 5's CANCELLATION ENDPOINTS (COMMENTED OUT UNTIL IMPLEMENTED) =====
+    /*
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY', 'ADMIN')")
     public ResponseEntity<BookingResponseDTO> cancelBooking(
@@ -77,4 +116,5 @@ public class BookingController {
                 id, authentication.getName(), reason);
         return ResponseEntity.ok(cancelledBooking);
     }
+    */
 }
