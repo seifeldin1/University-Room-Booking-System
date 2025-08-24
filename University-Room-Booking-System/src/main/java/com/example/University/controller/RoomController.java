@@ -6,6 +6,7 @@ import com.example.University.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,38 +17,45 @@ public class RoomController {
     private final RoomService roomService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('FACULTY', 'ADMIN')")
     public ResponseEntity<Room> create(@RequestBody RoomDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roomService.create(dto));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY', 'ADMIN')")
     public ResponseEntity<List<Room>> getAll() {
         return ResponseEntity.ok(roomService.getAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY', 'ADMIN')")
     public ResponseEntity<Room> getById(@PathVariable Long id){
         Room room = roomService.getRoomById(id);
         return ResponseEntity.ok(room);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('FACULTY', 'ADMIN')")
     public ResponseEntity<Room> update(@PathVariable Long id, @RequestBody RoomDto dto) {
         return ResponseEntity.ok(roomService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         roomService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/features")
+    @PreAuthorize("hasAnyRole('FACULTY', 'ADMIN')")
     public ResponseEntity<Room> attachFeatures(@PathVariable Long id, @RequestBody List<Long> featureIds) {
         return ResponseEntity.ok(roomService.attachFeatures(id, featureIds));
     }
 
     @DeleteMapping("/{id}/features/{fid}")
+    @PreAuthorize("hasAnyRole('FACULTY', 'ADMIN')")
     public ResponseEntity<Room> detachFeature(@PathVariable Long id, @PathVariable Long fid) {
         return ResponseEntity.ok(roomService.detachFeature(id, fid));
     }
