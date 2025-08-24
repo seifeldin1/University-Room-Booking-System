@@ -6,9 +6,7 @@ import com.example.University.entity.Booking;
 import com.example.University.entity.Role;
 import com.example.University.entity.Room;
 import com.example.University.entity.User;
-import com.example.University.repository.BookingRepository;
-import com.example.University.repository.RoomRepository;
-import com.example.University.repository.UserRepository;
+import com.example.University.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.AssertFalse;
@@ -17,6 +15,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,11 +29,13 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final BookingHistoryRepository bookingHistoryRepository;
+    private final HolidayRepository holidayRepository;
+    private final HolidayService holidayService;
 
     public List<TimeSlot> getFreeSlots(Long roomId, LocalDateTime rangeStart, LocalDateTime rangeEnd) {
         // Step 1: get all bookings in range
         List<Booking> bookings = bookingRepository.findActiveBookingsInRange(roomId, rangeStart, rangeEnd);
-
         List<TimeSlot> freeSlots = new ArrayList<TimeSlot>();
 
         // Step 2: walk through timeline
@@ -85,7 +86,7 @@ public class BookingService {
         if (conflict) {
             throw new IllegalArgumentException("Booking overlaps with an existing booking");
         }
-
+        validateHolidayRestrictions(dto.getStartTime(), dto.getEndTime());
         // 6. Create booking (status = PENDING)
         Booking booking = Booking.builder()
                 .room(room)
@@ -98,6 +99,13 @@ public class BookingService {
 
         booking = bookingRepository.save(booking);
 
+        Long cancelledById = null;
+        String cancelledByName = null;
+        if (booking.getCancelledBy() != null) {
+            cancelledById = booking.getCancelledBy().getId();
+            cancelledByName = booking.getCancelledBy().getFirstName();
+        }
+
         // 7. Return DTO
         return new BookingResponseDTO(
                 booking.getId(),
@@ -106,10 +114,24 @@ public class BookingService {
                 booking.getStartTime(),
                 booking.getEndTime(),
                 booking.getPurpose(),
-                booking.getStatus().name()
+                booking.getStatus().name(),
+                booking.getCancelledAt(),
+                cancelledById,
+                cancelledByName
         );
     }
-
+    private void validateHolidayRestrictions(LocalDateTime startTime, LocalDateTime endTime) {
+        LocalDate startDate = startTime.toLocalDate();
+        LocalDate endDate = endTime.toLocalDate();
+        if (holidayService.existsByDate(startDate)) {
+            throw new IllegalStateException("Booking cannot be made on a holiday: " + startDate);
+        }
+        if (!startDate.equals(endDate)) {
+            if (holidayService.existsByDateBetween(startDate, endDate)) {
+                throw new IllegalStateException("Booking cannot span across holidays between " + startDate + " and " + endDate);
+            }
+        }
+    }
 
     @Getter
     @AllArgsConstructor

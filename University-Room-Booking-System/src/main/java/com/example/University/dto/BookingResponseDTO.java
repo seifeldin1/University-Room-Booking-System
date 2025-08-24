@@ -14,6 +14,13 @@ public class BookingResponseDTO {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String purpose;
-    private String status; // PENDING, APPROVED, etc.
+    private String status;
+    private LocalDateTime cancelledAt;
+    private Long cancelledByUserId;
+    private String cancelledByName;
+    public BookingResponseDTO() {
+
+    }
+
 }
 

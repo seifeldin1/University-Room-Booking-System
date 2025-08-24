@@ -24,24 +24,39 @@ public class BookingHistory {
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 
-    @Column(name = "changed_by", nullable = false)
-    private Long changedBy; // User ID
+    @Enumerated(EnumType.STRING)
+    @Column(name = "action", nullable = false)
+    private BookingHistoryAction action;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "action_by", nullable = false)
+    private User actionBy;
+
+    @Column(name = "action_at", nullable = false)
+    private LocalDateTime actionAt;
+
+    @Column(name = "reason")
+    private String reason;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "old_status")
     private Booking.BookingStatus oldStatus;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "new_status", nullable = false)
+    @Column(name = "new_status")
     private Booking.BookingStatus newStatus;
 
-    @Column
-    private String reason;
+    @Column(name = "additional_notes")
+    private String additionalNotes;
 
-    @Column
-    private String notes;
+    public enum BookingHistoryAction {
+        CREATED,
+        APPROVED,
+        REJECTED,
+        CANCELLED,
+        MODIFIED,
+        DELETED;
+    }
 
-    @CreationTimestamp
-    @Column(name = "changed_at", updatable = false)
-    private LocalDateTime changedAt;
+
 }

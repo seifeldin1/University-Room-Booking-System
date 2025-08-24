@@ -3,10 +3,8 @@ package com.example.University.repository;
 import com.example.University.entity.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 
-import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -54,5 +52,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
               AND b.endTime > :startTime 
            ORDER BY b.startTime ASC """)
     List<Booking> findActiveBookingsInRange( @Param("roomId") Long roomId, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime );
+
+    @Query("""
+            SELECT b FROM Booking b 
+            WHERE b.user.id = :userId 
+            AND b.status IN ('PENDING', 'APPROVED') 
+            AND b.startTime > :currentTime
+            ORDER BY b.startTime ASC
+            """)
+    List<Booking> findCancellableBookingsByUser(
+            @Param("userId") Long userId,
+            @Param("currentTime") LocalDateTime currentTime);
 
 }
